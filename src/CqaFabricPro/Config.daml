@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArcGIS defaultAssembly="CqaFabricPro.dll" defaultNamespace="CqaFabricPro"
+        xmlns="http://schemas.esri.com/DADF/Registry"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
+  <AddInInfo id="0d229d56-047b-463c-9711-c5ddbd36fd39" version="0.3.0" desktopVersion="3.7.0">
+    <Name>CQA Fabric for ArcGIS Pro</Name>
+    <Description>Access CostQuest Fabric services from ArcGIS Pro.</Description>
+    <Author>CostQuest Associates</Author>
+    <Company>CostQuest Associates</Company>
+    <Date>2026-09-22</Date>
+    <Subject>Mapping</Subject>
+  </AddInInfo>
+  <modules>
+    <insertModule id="CqaFabricPro_Module" className="Module" autoLoad="false" caption="CQA Fabric">
+      <tabs>
+        <tab id="CqaFabricPro_Tab" caption="CQA Fabric">
+          <group refID="CqaFabricPro_Group" />
+        </tab>
+      </tabs>
+      <groups>
+        <group id="CqaFabricPro_Group" caption="Fabric" appearsOnAddInTab="false">
+          <button refID="CqaFabricPro_OpenPaneButton" size="large" />
+        </group>
+      </groups>
+      <controls>
+        <button id="CqaFabricPro_OpenPaneButton" caption="Open CQA Fabric" className="OpenFabricPaneButton"
+                loadOnClick="true" smallImage="ArcGIS_Core_AddData16" largeImage="ArcGIS_Core_AddData32">
+          <tooltip heading="CQA Fabric">Connect to CostQuest Fabric services.<disabledText /></tooltip>
+        </button>
+        <tool id="CqaFabricPro_IdentifyTool" caption="Identify Fabric" className="IdentifyFabricTool"
+              loadOnClick="true" smallImage="ArcGIS_Core_ExploreTool16" largeImage="ArcGIS_Core_ExploreTool32">
+          <tooltip heading="Identify Fabric">Click a Fabric feature to retrieve its attributes.<disabledText /></tooltip>
+        </tool>
+      </controls>
+      <dockPanes>
+        <dockPane id="CqaFabricPro_FabricPane" caption="CQA Fabric" className="FabricPaneViewModel"
+                  initiallyVisible="false" dock="group" dockWith="esri_core_contentsDockPane">
+          <content className="FabricPaneView" />
+        </dockPane>
+      </dockPanes>
+    </insertModule>
+  </modules>
+</ArcGIS>

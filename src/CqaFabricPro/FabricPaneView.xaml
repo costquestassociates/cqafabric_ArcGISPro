@@ -1,0 +1,29 @@
+<UserControl x:Class="CqaFabricPro.FabricPaneView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="300">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="16">
+      <TextBlock Text="CQA Fabric" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,16" />
+      <TextBlock Text="API key" />
+      <PasswordBox x:Name="ApiKeyBox" PasswordChanged="ApiKeyBox_OnPasswordChanged" Margin="0,4,0,8" />
+      <StackPanel Orientation="Horizontal">
+        <Button Content="Connect" Command="{Binding ConnectCommand}" MinWidth="88" Margin="0,0,8,0" />
+        <Button Content="Refresh" Command="{Binding RefreshCommand}" MinWidth="88" />
+      </StackPanel>
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,12,0,18" />
+      <Separator />
+      <TextBlock Text="Fabric selection" FontWeight="SemiBold" Margin="0,16,0,8" />
+      <TextBlock Text="Vintage" />
+      <ComboBox ItemsSource="{Binding Vintages}" SelectedItem="{Binding SelectedVintage}" Margin="0,4,0,10" />
+      <TextBlock Text="Layer" />
+      <ComboBox ItemsSource="{Binding Layers}" SelectedItem="{Binding SelectedLayer}" Margin="0,4,0,14" />
+      <Button Content="Add selected layer to map" Command="{Binding AddLayerCommand}"
+              HorizontalAlignment="Left" MinWidth="180" Padding="10,5" Margin="0,0,0,14" />
+      <Button Content="Identify Fabric" Command="{Binding IdentifyCommand}"
+              HorizontalAlignment="Left" MinWidth="180" Padding="10,5" Margin="0,0,0,14" />
+      <TextBlock Text="The API key remains in memory and is not written into the ArcGIS project or layer URL. Identify, Retrieve, Locate, and Match will be added in later phases."
+                 TextWrapping="Wrap" Foreground="Gray" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
