@@ -42,6 +42,16 @@ internal sealed class CostQuestApiClient : IDisposable
             .Cast<string>().ToArray();
     }
 
+    public async Task<int> GetMaxRequestAsync(string api, string operation, int fallback, CancellationToken token = default)
+    {
+        var definitions = await GetJsonArrayAsync("accountcontrol/listapis", token);
+        var definition = definitions.OfType<JsonObject>().FirstOrDefault(item =>
+            item["api"]?.ToString().Equals(api, StringComparison.OrdinalIgnoreCase) == true &&
+            item["operation"]?.ToString().Equals(operation, StringComparison.OrdinalIgnoreCase) == true &&
+            item["method"]?.ToString().Equals("POST", StringComparison.OrdinalIgnoreCase) == true);
+        return int.TryParse(definition?["maxrequest"]?.ToString(), out var maximum) && maximum > 0 ? maximum : fallback;
+    }
+
     public Task<JsonArray> GetFieldsAsync(string vintage, string layer, CancellationToken token = default) =>
         GetJsonArrayAsync($"fabric/{Segment(vintage)}/fields/{Segment(layer)}", token);
 
@@ -54,6 +64,9 @@ internal sealed class CostQuestApiClient : IDisposable
     public Task<JsonNode?> MatchAsync(string vintage, string address, CancellationToken token = default) =>
         GetJsonAsync($"fabricext/{Segment(vintage)}/match?text={Uri.EscapeDataString(address)}", token);
 
+    public Task<JsonNode?> MatchAsync(string vintage, JsonNode records, CancellationToken token = default) =>
+        PostJsonAsync($"fabricext/{Segment(vintage)}/match", records, token);
+
     public Task<JsonNode?> LocateAsync(string vintage, JsonNode records, double? nearDistanceMeters = null, CancellationToken token = default)
     {
         var suffix = nearDistanceMeters.HasValue ? $"?neardistancem={nearDistanceMeters.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
@@ -62,6 +75,59 @@ internal sealed class CostQuestApiClient : IDisposable
 
     public Task<JsonNode?> TranslateAsync(string vintage, JsonNode records, CancellationToken token = default) =>
         PostJsonAsync($"fabricext/{Segment(vintage)}/translate", records, token);
+
+    public async Task<JsonArray> RetrieveAsync(string vintage, string layer, IEnumerable<string> uuids,
+        IEnumerable<string> fields, CancellationToken token = default)
+    {
+        var ids = uuids.Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var requestedFields = fields.Where(value => !string.IsNullOrWhiteSpace(value) &&
+                !value.Equals("uuid", StringComparison.OrdinalIgnoreCase))
+            .Select(value => value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (ids.Length == 0) return [];
+        if (requestedFields.Length == 0) requestedFields = ["uuid"];
+
+        var records = new Dictionary<string, JsonObject>(StringComparer.OrdinalIgnoreCase);
+        foreach (var idBatch in ids.Chunk(100))
+        {
+            foreach (var fieldGroup in requestedFields.Chunk(5))
+            {
+                var payload = new JsonArray(idBatch.Select(id => (JsonNode?)JsonValue.Create(id)).ToArray());
+                var fieldQuery = Uri.EscapeDataString(string.Join(',', fieldGroup));
+                var response = await PostJsonAsync($"fabric/{Segment(vintage)}/bulk/{Segment(layer)}?field={fieldQuery}", payload, token);
+                if (response is not JsonArray array) continue;
+                foreach (var item in array.OfType<JsonObject>())
+                {
+                    var uuid = item["uuid"]?.ToString();
+                    if (string.IsNullOrWhiteSpace(uuid)) continue;
+                    if (!records.TryGetValue(uuid, out var target)) records[uuid] = target = new JsonObject { ["uuid"] = uuid };
+                    foreach (var property in item) target[property.Key] = property.Value?.DeepClone();
+                }
+            }
+        }
+        return new JsonArray(records.Values.OrderBy(record => record["uuid"]?.ToString(), StringComparer.OrdinalIgnoreCase)
+            .Select(record => (JsonNode?)record).ToArray());
+    }
+
+    public async Task<IReadOnlyList<string>> CollectAsync(string vintage, JsonNode geoJson, CancellationToken token = default)
+    {
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        async Task CollectPageAsync(JsonNode body)
+        {
+            var response = await PostJsonAsync($"fabric/{Segment(vintage)}/collect2", body, token) as JsonObject
+                ?? throw new CostQuestApiException(HttpStatusCode.OK, "The collect service returned an unexpected response.");
+            if (response["data"] is JsonArray data)
+                foreach (var item in data)
+                    if (!string.IsNullOrWhiteSpace(item?.ToString())) ids.Add(item!.ToString());
+            if (response["continuations"] is JsonArray continuations)
+                foreach (var continuation in continuations.OfType<JsonObject>())
+                    if (continuation["body"] is JsonNode continuationBody)
+                        await CollectPageAsync(continuationBody);
+        }
+
+        await CollectPageAsync(geoJson);
+        return ids.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
 
     private async Task<JsonArray> GetJsonArrayAsync(string path, CancellationToken token)
     {

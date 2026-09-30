@@ -3,7 +3,7 @@
         xmlns="http://schemas.esri.com/DADF/Registry"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
-  <AddInInfo id="0d229d56-047b-463c-9711-c5ddbd36fd39" version="0.3.0" desktopVersion="3.7.0">
+  <AddInInfo id="0d229d56-047b-463c-9711-c5ddbd36fd39" version="0.10.1" desktopVersion="3.7.0">
     <Name>CQA Fabric for ArcGIS Pro</Name>
     <Description>Access CostQuest Fabric services from ArcGIS Pro.</Description>
     <Author>CostQuest Associates</Author>
@@ -12,33 +12,55 @@
     <Subject>Mapping</Subject>
   </AddInInfo>
   <modules>
-    <insertModule id="CqaFabricPro_Module" className="Module" autoLoad="false" caption="CQA Fabric">
-      <tabs>
-        <tab id="CqaFabricPro_Tab" caption="CQA Fabric">
-          <group refID="CqaFabricPro_Group" />
-        </tab>
-      </tabs>
+    <insertModule id="CqaFabricPro_Module" className="Module" autoLoad="true" caption="CQA Fabric">
       <groups>
-        <group id="CqaFabricPro_Group" caption="Fabric" appearsOnAddInTab="false">
+        <group id="CqaFabricPro_Group" caption="CQA Fabric" keytip="CQ" appearsOnAddInTab="true">
           <button refID="CqaFabricPro_OpenPaneButton" size="large" />
+          <button refID="CqaFabricPro_RetrieveButton" size="large" />
+          <button refID="CqaFabricPro_LocateButton" size="large" />
+          <button refID="CqaFabricPro_IdentifyButton" size="large" />
+          <button refID="CqaFabricPro_LoginLogoutButton" size="large" />
         </group>
       </groups>
       <controls>
-        <button id="CqaFabricPro_OpenPaneButton" caption="Open CQA Fabric" className="OpenFabricPaneButton"
-                loadOnClick="true" smallImage="ArcGIS_Core_AddData16" largeImage="ArcGIS_Core_AddData32">
-          <tooltip heading="CQA Fabric">Connect to CostQuest Fabric services.<disabledText /></tooltip>
+        <button id="CqaFabricPro_OpenPaneButton" caption="Add Fabric Tiles" className="OpenFabricPaneButton" keytip="A"
+                loadOnClick="false" smallImage="pack://application:,,,/CqaFabricPro;component/Images/icon5_16.png" largeImage="pack://application:,,,/CqaFabricPro;component/Images/icon5_32.png">
+          <tooltip heading="Add Fabric Tiles">Open CQA Fabric to select and add a Fabric layer.<disabledText /></tooltip>
         </button>
-        <tool id="CqaFabricPro_IdentifyTool" caption="Identify Fabric" className="IdentifyFabricTool"
+        <button id="CqaFabricPro_LocateButton" caption="Locate Fabric" className="LocateFabricButton" keytip="O"
+                loadOnClick="false" smallImage="pack://application:,,,/CqaFabricPro;component/Images/icon4_16.png" largeImage="pack://application:,,,/CqaFabricPro;component/Images/icon4_32.png">
+          <tooltip heading="Locate Fabric">Locate Fabric locations by coordinate or address.<disabledText>Log in first.</disabledText></tooltip>
+        </button>
+        <button id="CqaFabricPro_RetrieveButton" caption="Retrieve Fabric" className="RetrieveFabricButton" keytip="R"
+                loadOnClick="false" smallImage="pack://application:,,,/CqaFabricPro;component/Images/icon1_16.png" largeImage="pack://application:,,,/CqaFabricPro;component/Images/icon1_32.png">
+          <tooltip heading="Retrieve Fabric">Retrieve selected Fabric fields for one or more UUIDs.<disabledText>Log in first.</disabledText></tooltip>
+        </button>
+        <button id="CqaFabricPro_IdentifyButton" caption="Identify Fabric" className="IdentifyFabricButton" keytip="I"
+                loadOnClick="false" smallImage="pack://application:,,,/CqaFabricPro;component/Images/icon2_16.png" largeImage="pack://application:,,,/CqaFabricPro;component/Images/icon2_32.png">
+          <tooltip heading="Identify Fabric">Activate or deactivate Fabric identification.<disabledText>Log in, select a vintage and layer, and open a map first.</disabledText></tooltip>
+        </button>
+        <button id="CqaFabricPro_LoginLogoutButton" caption="Log In" className="LoginLogoutButton" keytip="L"
+                loadOnClick="false" smallImage="pack://application:,,,/CqaFabricPro;component/Images/icon3_16.png" largeImage="pack://application:,,,/CqaFabricPro;component/Images/icon3_32.png">
+          <tooltip heading="CQA Fabric Login">Log in with an API key or securely log out.<disabledText /></tooltip>
+        </button>
+        <tool id="CqaFabricPro_IdentifyTool" caption="Identify Fabric" className="IdentifyFabricTool" keytip="F"
               loadOnClick="true" smallImage="ArcGIS_Core_ExploreTool16" largeImage="ArcGIS_Core_ExploreTool32">
           <tooltip heading="Identify Fabric">Click a Fabric feature to retrieve its attributes.<disabledText /></tooltip>
         </tool>
       </controls>
       <dockPanes>
-        <dockPane id="CqaFabricPro_FabricPane" caption="CQA Fabric" className="FabricPaneViewModel"
-                  initiallyVisible="false" dock="group" dockWith="esri_core_contentsDockPane">
+          <dockPane id="CqaFabricPro_FabricPane" caption="CQA Fabric" className="FabricPaneViewModel"
+                  dock="group" dockWith="esri_core_contentsDockPane">
           <content className="FabricPaneView" />
         </dockPane>
       </dockPanes>
     </insertModule>
   </modules>
+  <quickAccessToolbar>
+    <control refID="CqaFabricPro_OpenPaneButton" />
+    <control refID="CqaFabricPro_RetrieveButton" />
+    <control refID="CqaFabricPro_LocateButton" />
+    <control refID="CqaFabricPro_IdentifyButton" />
+    <control refID="CqaFabricPro_LoginLogoutButton" />
+  </quickAccessToolbar>
 </ArcGIS>

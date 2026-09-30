@@ -16,19 +16,29 @@ internal sealed class FabricPaneViewModel : DockPane
     private string _apiKey = string.Empty;
     private string _status = "Enter your CostQuest API key to connect.";
     private bool _isConnected;
+    private bool _rememberApiKey;
     private string? _selectedVintage;
     private string? _selectedLayer;
+    private string _identifyButtonText = "Identify Fabric";
 
     public FabricPaneViewModel()
     {
         ConnectCommand = new AsyncRelayCommand(ConnectAsync, () => !string.IsNullOrWhiteSpace(ApiKey));
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => IsConnected);
         AddLayerCommand = new AsyncRelayCommand(AddLayerAsync, CanAddLayer);
-        IdentifyCommand = new AsyncRelayCommand(ActivateIdentifyAsync, CanAddLayer);
+        IdentifyCommand = new AsyncRelayCommand(ToggleIdentifyAsync, CanAddLayer);
+        var savedKey = WindowsCredentialStore.Load();
+        if (!string.IsNullOrWhiteSpace(savedKey))
+        {
+            ApiKey = savedKey;
+            RememberApiKey = true;
+            _ = ConnectAsync();
+        }
     }
 
     public string ApiKey { get => _apiKey; set { if (SetProperty(ref _apiKey, value)) ConnectCommand.RaiseCanExecuteChanged(); } }
     public string Status { get => _status; private set => SetProperty(ref _status, value); }
+    public bool RememberApiKey { get => _rememberApiKey; set => SetProperty(ref _rememberApiKey, value); }
     public bool IsConnected
     {
         get => _isConnected;
@@ -48,20 +58,36 @@ internal sealed class FabricPaneViewModel : DockPane
     public AsyncRelayCommand RefreshCommand { get; }
     public AsyncRelayCommand AddLayerCommand { get; }
     public AsyncRelayCommand IdentifyCommand { get; }
+    public string AppVersion => $"Version {typeof(FabricPaneViewModel).Assembly.GetName().Version?.ToString(3)}";
+    public string IdentifyButtonText { get => _identifyButtonText; private set => SetProperty(ref _identifyButtonText, value); }
 
-    private async Task ActivateIdentifyAsync()
+    internal async Task ToggleIdentifyAsync()
     {
+        if (ArcGIS.Desktop.Framework.FrameworkApplication.CurrentTool == "CqaFabricPro_IdentifyTool")
+        {
+            IdentifySession.Current = null;
+            IdentifyFabricTool.CloseActivePopup();
+            await ArcGIS.Desktop.Framework.FrameworkApplication.SetCurrentToolAsync("esri_mapping_exploreTool");
+            IdentifyButtonText = "Identify Fabric";
+            Status = "Identify inactive.";
+            return;
+        }
+
         IdentifySession.Current = new(ApiKey, SelectedVintage!, SelectedLayer!);
         await ArcGIS.Desktop.Framework.FrameworkApplication.SetCurrentToolAsync("CqaFabricPro_IdentifyTool");
-        Status = $"Identify active: click a {SelectedLayer} feature on the map.";
+        IdentifyButtonText = "Deactivate Identify";
+        Status = "Identify active: click the map to identify the top visible Fabric layer.";
     }
 
     private bool CanAddLayer() => IsConnected && !string.IsNullOrWhiteSpace(SelectedVintage)
         && !string.IsNullOrWhiteSpace(SelectedLayer) && MapView.Active?.Map is not null;
 
+    internal bool CanIdentify => CanAddLayer();
+
     private async Task AddLayerAsync()
     {
-        var map = MapView.Active?.Map;
+        var activeView = MapView.Active;
+        var map = activeView?.Map;
         if (map is null)
         {
             Status = "Open or activate a map before adding Fabric tiles.";
@@ -71,6 +97,7 @@ internal sealed class FabricPaneViewModel : DockPane
         var vintage = SelectedVintage!;
         var layerName = SelectedLayer!;
         var displayName = $"Fabric {vintage} - {layerName}";
+        var originalCamera = activeView!.Camera;
         Status = $"Adding {displayName}...";
         TileProxyService? proxy = null;
         try
@@ -84,11 +111,13 @@ internal sealed class FabricPaneViewModel : DockPane
                 {
                     Name = displayName,
                     IsVisible = true,
+                    AutoZoomOnEmptyMap = false,
                     MapMemberPosition = MapMemberPosition.AddToTop,
                     MinimumScale = layerName is "locations" or "retirements" ? 0 : 80000
                 };
                 LayerFactory.Instance.CreateLayer<VectorTileLayer>(parameters, map);
             });
+            await activeView.ZoomToAsync(originalCamera, TimeSpan.Zero);
             _tileProxies.Add(proxy);
             proxy = null;
             Status = $"Added {displayName} to the active map.";
@@ -97,7 +126,7 @@ internal sealed class FabricPaneViewModel : DockPane
         finally { proxy?.Dispose(); }
     }
 
-    private async Task ConnectAsync()
+    internal async Task ConnectAsync()
     {
         Status = "Validating API key...";
         IsConnected = false;
@@ -110,6 +139,8 @@ internal sealed class FabricPaneViewModel : DockPane
                 return;
             }
             IsConnected = true;
+            if (RememberApiKey) WindowsCredentialStore.Save(ApiKey);
+            else WindowsCredentialStore.Delete();
             await RefreshAsync();
         }
         catch (CostQuestApiException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
@@ -117,6 +148,29 @@ internal sealed class FabricPaneViewModel : DockPane
             Status = "The API key was not accepted.";
         }
         catch (Exception ex) { Status = $"Connection failed: {ex.Message}"; }
+    }
+
+    internal async Task LogoutAsync()
+    {
+        try
+        {
+            WindowsCredentialStore.Delete();
+            foreach (var proxy in _tileProxies) proxy.Dispose();
+            _tileProxies.Clear();
+            IdentifySession.Current = null;
+            IdentifyFabricTool.CloseActivePopup();
+            await ArcGIS.Desktop.Framework.FrameworkApplication.SetCurrentToolAsync("esri_mapping_exploreTool");
+            IdentifyButtonText = "Identify Fabric";
+            ApiKey = string.Empty;
+            RememberApiKey = false;
+            IsConnected = false;
+            Vintages.Clear();
+            Layers.Clear();
+            SelectedVintage = null;
+            SelectedLayer = null;
+            Status = "Logged out. The saved API key was removed.";
+        }
+        catch (Exception ex) { Status = $"Logout failed: {ex.Message}"; }
     }
 
     private async Task RefreshAsync()

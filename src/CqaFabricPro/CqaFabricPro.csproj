@@ -6,10 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CqaFabricPro</AssemblyName>
     <RootNamespace>CqaFabricPro</RootNamespace>
+    <Version>0.10.1</Version>
     <Platforms>AnyCPU</Platforms>
     <ArcGISProInstallDir Condition="'$(ArcGISProInstallDir)' == ''">C:\Program Files\ArcGIS\Pro</ArcGISProInstallDir>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Images\icon1_16.png" />
+    <Resource Include="Images\icon1_32.png" />
     <Reference Include="ArcGIS.Core">
       <HintPath>$(ArcGISProInstallDir)\bin\ArcGIS.Core.dll</HintPath>
       <Private>false</Private>
@@ -30,6 +33,16 @@
       <HintPath>$(ArcGISProInstallDir)\bin\Extensions\DesktopExtensions\ArcGIS.Desktop.Extensions.dll</HintPath>
       <Private>false</Private>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\icon2_16.png" />
+    <Resource Include="Images\icon2_32.png" />
+    <Resource Include="Images\icon3_16.png" />
+    <Resource Include="Images\icon3_32.png" />
+    <Resource Include="Images\icon4_16.png" />
+    <Resource Include="Images\icon4_32.png" />
+    <Resource Include="Images\icon5_16.png" />
+    <Resource Include="Images\icon5_32.png" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Config.daml">

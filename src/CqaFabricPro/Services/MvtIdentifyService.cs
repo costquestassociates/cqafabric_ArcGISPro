@@ -6,6 +6,9 @@ namespace CqaFabricPro.Services;
 
 internal static class MvtIdentifyService
 {
+    private const double PointHitRadiusMeters = 5.0;
+    private const double EarthCircumferenceMeters = 40075016.68557849;
+
     public static async Task<IReadOnlyList<string>> FindAsync(IdentifyContext context, double longitude, double latitude, CancellationToken token = default)
     {
         const int zoom = 14;
@@ -19,10 +22,10 @@ internal static class MvtIdentifyService
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
         http.DefaultRequestHeaders.Add("apikey", context.ApiKey);
         var bytes = await http.GetByteArrayAsync(url, token);
-        return ParseTile(bytes, context.Layer, worldX - tileX, worldY - tileY);
+        return ParseTile(bytes, context.Layer, worldX - tileX, worldY - tileY, latitude, n);
     }
 
-    private static IReadOnlyList<string> ParseTile(byte[] bytes, string layerName, double fractionX, double fractionY)
+    private static IReadOnlyList<string> ParseTile(byte[] bytes, string layerName, double fractionX, double fractionY, double latitude, int tileCount)
     {
         var reader = new ProtoReader(bytes);
         while (reader.TryField(out var field, out var wire))
@@ -30,7 +33,7 @@ internal static class MvtIdentifyService
             if (field == 3 && wire == 2)
             {
                 var layer = reader.ReadBytes();
-                var result = ParseLayer(layer, layerName, fractionX, fractionY);
+                var result = ParseLayer(layer, layerName, fractionX, fractionY, latitude, tileCount);
                 if (result is not null) return result;
             }
             else reader.Skip(wire);
@@ -38,7 +41,7 @@ internal static class MvtIdentifyService
         return [];
     }
 
-    private static IReadOnlyList<string>? ParseLayer(byte[] bytes, string expectedName, double fx, double fy)
+    private static IReadOnlyList<string>? ParseLayer(byte[] bytes, string expectedName, double fx, double fy, double latitude, int tileCount)
     {
         var r = new ProtoReader(bytes); string name = ""; uint extent = 4096;
         var features = new List<byte[]>(); var keys = new List<string>(); var values = new List<string>();
@@ -50,12 +53,15 @@ internal static class MvtIdentifyService
         }
         if (!name.Equals(expectedName, StringComparison.OrdinalIgnoreCase)) return null;
         var x = fx * extent; var y = fy * extent; var hits = new List<string>();
+        var metersPerTileUnit = EarthCircumferenceMeters * Math.Max(Math.Cos(latitude * Math.PI / 180.0), 0.000001)
+            / (tileCount * extent);
+        var pointHitRadius = PointHitRadiusMeters / metersPerTileUnit;
         foreach (var feature in features)
         {
             var fr = new ProtoReader(feature); byte[] tags = []; byte[] geometry = []; int type = 0;
             while (fr.TryField(out var f, out var w))
             { if (f == 2) tags = fr.ReadBytes(); else if (f == 3) type = (int)fr.ReadVarint(); else if (f == 4) geometry = fr.ReadBytes(); else fr.Skip(w); }
-            if (!Hit(geometry, type, x, y)) continue;
+            if (!Hit(geometry, type, x, y, pointHitRadius)) continue;
             var tr = new ProtoReader(tags); var indices = new List<int>(); while (!tr.End) indices.Add((int)tr.ReadVarint());
             for (var i = 0; i + 1 < indices.Count; i += 2)
                 if (indices[i] < keys.Count && indices[i + 1] < values.Count && keys[indices[i]].Equals("uuid", StringComparison.OrdinalIgnoreCase)) hits.Add(values[indices[i + 1]]);
@@ -63,7 +69,7 @@ internal static class MvtIdentifyService
         return hits.Distinct().ToArray();
     }
 
-    private static bool Hit(byte[] geometry, int type, double px, double py)
+    private static bool Hit(byte[] geometry, int type, double px, double py, double pointHitRadius)
     {
         var r = new ProtoReader(geometry); var x = 0; var y = 0; var rings = new List<List<(int x,int y)>>(); List<(int,int)>? current = null;
         while (!r.End)
@@ -72,7 +78,16 @@ internal static class MvtIdentifyService
             if (id is 1 or 2) for (var i=0;i<count;i++) { x += Zig(r.ReadVarint()); y += Zig(r.ReadVarint()); if(id==1){current=[];rings.Add(current);} current?.Add((x,y)); }
             else if (id == 7) { } else break;
         }
-        if (type == 1) return rings.SelectMany(a=>a).Any(p => Math.Abs(p.x-px)<=48 && Math.Abs(p.y-py)<=48);
+        if (type == 1)
+        {
+            var radiusSquared = pointHitRadius * pointHitRadius;
+            return rings.SelectMany(ring => ring).Any(point =>
+            {
+                var dx = point.x - px;
+                var dy = point.y - py;
+                return dx * dx + dy * dy <= radiusSquared;
+            });
+        }
         var inside=false; foreach(var ring in rings){ for(int i=0,j=ring.Count-1;i<ring.Count;j=i++) { var a=ring[i];var b=ring[j]; if(((a.y>py)!=(b.y>py)) && px < (double)(b.x-a.x)*(py-a.y)/(b.y-a.y)+a.x) inside=!inside; } } return inside;
     }
     private static int Zig(ulong value) => (int)((value >> 1) ^ (ulong)-(long)(value & 1));
