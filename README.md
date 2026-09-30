@@ -1,6 +1,9 @@
-# CQA Fabric for ArcGIS Pro
+# cqafabric_ArcGISPro
 
-Initial ArcGIS Pro 3.7 port of the CQA Fabric QGIS plugin.
+CQA Fabric for ArcGIS Pro is an ArcGIS Pro 3.7 port of the CQA Fabric QGIS
+plugin.
+
+Repository: [hchen-cqa/cqafabric_ArcGISPro](https://github.com/hchen-cqa/cqafabric_ArcGISPro)
 
 ## Implemented
 
