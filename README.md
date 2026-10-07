@@ -34,6 +34,7 @@ The Fabric commands remain disabled until login succeeds. Select **Log Out** to
 end the session and remove the saved API key.
 
 ## Features
+<img width="311" height="99" alt="image" src="https://github.com/user-attachments/assets/3431c5a1-4047-4e5e-a261-557ae77e8bd1" />
 
 ### Add Fabric Tiles
 
