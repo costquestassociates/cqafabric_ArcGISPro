@@ -1,6 +1,5 @@
 **/bin/
 **/obj/
 .vs/
-artifacts/
 .dotnet-cli/
 *.user
