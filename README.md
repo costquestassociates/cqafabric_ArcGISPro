@@ -16,7 +16,7 @@ To request an API key, contact [APISupport@costquest.com](mailto:APISupport@cost
 
 ## Installation
 
-1. Download artifacts/CqaFabricPro.esriAddInX from the latest release.
+1. Download `CqaFabricPro.esriAddInX` from the latest release.
 2. Close ArcGIS Pro.
 3. Double-click `CqaFabricPro.esriAddInX` and accept the ArcGIS Pro add-in prompt.
 4. Reopen ArcGIS Pro.
