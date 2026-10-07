@@ -3,7 +3,7 @@
         xmlns="http://schemas.esri.com/DADF/Registry"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
-  <AddInInfo id="0d229d56-047b-463c-9711-c5ddbd36fd39" version="0.10.1" desktopVersion="3.7.0">
+  <AddInInfo id="0d229d56-047b-463c-9711-c5ddbd36fd39" version="1.0.0" desktopVersion="3.7.0">
     <Name>CQA Fabric for ArcGIS Pro</Name>
     <Description>Access CostQuest Fabric services from ArcGIS Pro.</Description>
     <Author>CostQuest Associates</Author>
