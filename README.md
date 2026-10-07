@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/v/release/hchen-cqa/cqafabric_ArcGISPro)](https://github.com/hchen-cqa/cqafabric_ArcGISPro/releases)
+[![GitHub release](https://img.shields.io/github/v/release/hchen-cqa/cqafabric_ArcGISPro?cacheSeconds=300)](https://github.com/hchen-cqa/cqafabric_ArcGISPro/releases/latest)
 
 # CQA Fabric for ArcGIS Pro
 
