@@ -115,4 +115,3 @@ The packaged add-in is created at `artifacts\CqaFabricPro.esriAddInX`.
 For API access or CostQuest service questions, contact
 [APISupport@costquest.com](mailto:APISupport@costquest.com).
 
-Repository: [hchen-cqa/cqafabric_ArcGISPro](https://github.com/hchen-cqa/cqafabric_ArcGISPro)
