@@ -10,6 +10,10 @@ namespace CqaFabricPro.Services;
 internal sealed class CostQuestApiClient : IDisposable
 {
     private static readonly Uri BaseUri = new("https://api.costquest.com/");
+    // Match cqazapi-pytools defaults: address matching benefits from substantially
+    // more parallelism than the other bulk endpoints.
+    private const int DefaultWorkers = 4;
+    private const int MatchWorkers = 16;
     private readonly HttpClient _http;
 
     public CostQuestApiClient(string apiKey, HttpMessageHandler? handler = null)
@@ -67,11 +71,19 @@ internal sealed class CostQuestApiClient : IDisposable
     public Task<JsonNode?> MatchAsync(string vintage, JsonNode records, CancellationToken token = default) =>
         PostJsonAsync($"fabricext/{Segment(vintage)}/match", records, token);
 
+    public Task<IReadOnlyList<JsonNode?>> MatchBulkAsync(string vintage, IReadOnlyList<JsonObject> records,
+        int batchSize, IProgress<int>? progress = null, CancellationToken token = default) =>
+        PostBulkAsync($"fabricext/{Segment(vintage)}/match", records, batchSize, MatchWorkers, progress, token);
+
     public Task<JsonNode?> LocateAsync(string vintage, JsonNode records, double? nearDistanceMeters = null, CancellationToken token = default)
     {
         var suffix = nearDistanceMeters.HasValue ? $"?neardistancem={nearDistanceMeters.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
         return PostJsonAsync($"fabricext/{Segment(vintage)}/locate{suffix}", records, token);
     }
+
+    public Task<IReadOnlyList<JsonNode?>> LocateBulkAsync(string vintage, IReadOnlyList<JsonObject> records,
+        int batchSize, IProgress<int>? progress = null, CancellationToken token = default) =>
+        PostBulkAsync($"fabricext/{Segment(vintage)}/locate", records, batchSize, DefaultWorkers, progress, token);
 
     public Task<JsonNode?> TranslateAsync(string vintage, JsonNode records, CancellationToken token = default) =>
         PostJsonAsync($"fabricext/{Segment(vintage)}/translate", records, token);
@@ -87,22 +99,25 @@ internal sealed class CostQuestApiClient : IDisposable
         if (ids.Length == 0) return [];
         if (requestedFields.Length == 0) requestedFields = ["uuid"];
 
-        var records = new Dictionary<string, JsonObject>(StringComparer.OrdinalIgnoreCase);
-        foreach (var idBatch in ids.Chunk(100))
+        var requests = (from idBatch in ids.Chunk(100)
+                        from fieldGroup in requestedFields.Chunk(5)
+                        select (Ids: idBatch, Fields: fieldGroup)).ToArray();
+        var responses = await RunConcurrentlyAsync(requests, DefaultWorkers, async request =>
         {
-            foreach (var fieldGroup in requestedFields.Chunk(5))
+            var payload = new JsonArray(request.Ids.Select(id => (JsonNode?)JsonValue.Create(id)).ToArray());
+            var fieldQuery = Uri.EscapeDataString(string.Join(',', request.Fields));
+            return await PostJsonAsync($"fabric/{Segment(vintage)}/bulk/{Segment(layer)}?field={fieldQuery}", payload, token);
+        }, token);
+
+        var records = new Dictionary<string, JsonObject>(StringComparer.OrdinalIgnoreCase);
+        foreach (var array in responses.OfType<JsonArray>())
+        {
+            foreach (var item in array.OfType<JsonObject>())
             {
-                var payload = new JsonArray(idBatch.Select(id => (JsonNode?)JsonValue.Create(id)).ToArray());
-                var fieldQuery = Uri.EscapeDataString(string.Join(',', fieldGroup));
-                var response = await PostJsonAsync($"fabric/{Segment(vintage)}/bulk/{Segment(layer)}?field={fieldQuery}", payload, token);
-                if (response is not JsonArray array) continue;
-                foreach (var item in array.OfType<JsonObject>())
-                {
-                    var uuid = item["uuid"]?.ToString();
-                    if (string.IsNullOrWhiteSpace(uuid)) continue;
-                    if (!records.TryGetValue(uuid, out var target)) records[uuid] = target = new JsonObject { ["uuid"] = uuid };
-                    foreach (var property in item) target[property.Key] = property.Value?.DeepClone();
-                }
+                var uuid = item["uuid"]?.ToString();
+                if (string.IsNullOrWhiteSpace(uuid)) continue;
+                if (!records.TryGetValue(uuid, out var target)) records[uuid] = target = new JsonObject { ["uuid"] = uuid };
+                foreach (var property in item) target[property.Key] = property.Value?.DeepClone();
             }
         }
         return new JsonArray(records.Values.OrderBy(record => record["uuid"]?.ToString(), StringComparer.OrdinalIgnoreCase)
@@ -146,6 +161,35 @@ internal sealed class CostQuestApiClient : IDisposable
         using var content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         using var response = await _http.PostAsync(path, content, token);
         return await ReadResponseAsync(response, token);
+    }
+
+    private async Task<IReadOnlyList<JsonNode?>> PostBulkAsync(string path, IReadOnlyList<JsonObject> records,
+        int batchSize, int workers, IProgress<int>? progress, CancellationToken token)
+    {
+        if (batchSize <= 0) throw new ArgumentOutOfRangeException(nameof(batchSize));
+        var batches = records.Chunk(batchSize).ToArray();
+        var completed = 0;
+        return await RunConcurrentlyAsync(batches, workers, async batch =>
+        {
+            var payload = new JsonArray(batch.Select(item => (JsonNode?)item.DeepClone()).ToArray());
+            var response = await PostJsonAsync(path, payload, token);
+            progress?.Report(Interlocked.Add(ref completed, batch.Length));
+            return response;
+        }, token);
+    }
+
+    private static async Task<TResult[]> RunConcurrentlyAsync<TInput, TResult>(IReadOnlyList<TInput> inputs,
+        int workers, Func<TInput, Task<TResult>> action, CancellationToken token)
+    {
+        using var gate = new SemaphoreSlim(Math.Max(1, workers));
+        var tasks = inputs.Select(async (input, index) =>
+        {
+            await gate.WaitAsync(token);
+            try { return (Index: index, Result: await action(input)); }
+            finally { gate.Release(); }
+        }).ToArray();
+        var completed = await Task.WhenAll(tasks);
+        return completed.OrderBy(item => item.Index).Select(item => item.Result).ToArray();
     }
 
     private static async Task<JsonNode?> ReadResponseAsync(HttpResponseMessage response, CancellationToken token)

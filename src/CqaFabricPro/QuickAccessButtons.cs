@@ -33,6 +33,21 @@ internal sealed class IdentifyFabricButton : Button
     }
 }
 
+internal abstract class IdentifyScopeButton(IdentifyLayerScope scope, string caption) : Button
+{
+    protected override void OnClick() => IdentifySearchSettings.LayerScope = scope;
+
+    protected override void OnUpdate()
+    {
+        Caption = IdentifySearchSettings.LayerScope == scope ? $"✓ {caption}" : caption;
+        Enabled = true;
+    }
+}
+
+internal sealed class IdentifyTopmostLayerButton() : IdentifyScopeButton(IdentifyLayerScope.TopmostLayer, "Topmost Layer");
+internal sealed class IdentifyVisibleLayersButton() : IdentifyScopeButton(IdentifyLayerScope.VisibleLayers, "Visible Layers");
+internal sealed class IdentifySelectedLayersButton() : IdentifyScopeButton(IdentifyLayerScope.SelectedInContents, "Selected in Contents");
+
 internal sealed class RetrieveFabricButton : Button
 {
     protected override void OnClick()

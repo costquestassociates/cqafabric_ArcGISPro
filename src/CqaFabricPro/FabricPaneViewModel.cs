@@ -25,8 +25,8 @@ internal sealed class FabricPaneViewModel : DockPane
     {
         ConnectCommand = new AsyncRelayCommand(ConnectAsync, () => !string.IsNullOrWhiteSpace(ApiKey));
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => IsConnected);
-        AddLayerCommand = new AsyncRelayCommand(AddLayerAsync, CanAddLayer);
-        IdentifyCommand = new AsyncRelayCommand(ToggleIdentifyAsync, CanAddLayer);
+        AddLayerCommand = new AsyncRelayCommand(AddLayerAsync, HasFabricSelection);
+        IdentifyCommand = new AsyncRelayCommand(ToggleIdentifyAsync, CanIdentifyLayer);
         var savedKey = WindowsCredentialStore.Load();
         if (!string.IsNullOrWhiteSpace(savedKey))
         {
@@ -79,10 +79,12 @@ internal sealed class FabricPaneViewModel : DockPane
         Status = "Identify active: click the map to identify the top visible Fabric layer.";
     }
 
-    private bool CanAddLayer() => IsConnected && !string.IsNullOrWhiteSpace(SelectedVintage)
-        && !string.IsNullOrWhiteSpace(SelectedLayer) && MapView.Active?.Map is not null;
+    private bool HasFabricSelection() => IsConnected && !string.IsNullOrWhiteSpace(SelectedVintage)
+        && !string.IsNullOrWhiteSpace(SelectedLayer);
 
-    internal bool CanIdentify => CanAddLayer();
+    private bool CanIdentifyLayer() => HasFabricSelection() && MapView.Active?.Map is not null;
+
+    internal bool CanIdentify => CanIdentifyLayer();
 
     private async Task AddLayerAsync()
     {

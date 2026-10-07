@@ -93,19 +93,16 @@ internal sealed class LocateFabricWindow : Window
                 var inputs = ReadCsv(text, _coordinate.IsChecked == true);
                 sourceKeys.AddRange(inputs.Select(item => item["sourcekey"]!.ToString()));
                 _results = [];
-                var completed = 0;
                 var operation = _coordinate.IsChecked == true ? "locate" : "match";
                 var batchSize = await api.GetMaxRequestAsync("fabricext", operation,
                     _coordinate.IsChecked == true ? 500 : 10);
-                foreach (var chunk in inputs.Chunk(batchSize))
-                {
-                    var payload = new JsonArray(chunk.Select(item => (JsonNode?)item.DeepClone()).ToArray());
-                    var response = _coordinate.IsChecked == true
-                        ? await api.LocateAsync(vintage, payload)
-                        : await api.MatchAsync(vintage, payload);
+                var progress = new Progress<int>(completed =>
+                    _status.Text = $"Processed {completed:N0} of {inputs.Count:N0} input row(s)...");
+                var responses = _coordinate.IsChecked == true
+                    ? await api.LocateBulkAsync(vintage, inputs, batchSize, progress)
+                    : await api.MatchBulkAsync(vintage, inputs, batchSize, progress);
+                foreach (var response in responses)
                     foreach (var result in ExtractLocations(response)) _results.Add(result?.DeepClone());
-                    completed += chunk.Length; _status.Text = $"Processed {completed:N0} of {inputs.Count:N0} input row(s)...";
-                }
             }
             else
             {

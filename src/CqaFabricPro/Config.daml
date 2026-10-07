@@ -18,7 +18,7 @@
           <button refID="CqaFabricPro_OpenPaneButton" size="large" />
           <button refID="CqaFabricPro_RetrieveButton" size="large" />
           <button refID="CqaFabricPro_LocateButton" size="large" />
-          <button refID="CqaFabricPro_IdentifyButton" size="large" />
+          <splitButton refID="CqaFabricPro_IdentifySplitButton" size="large" />
           <button refID="CqaFabricPro_LoginLogoutButton" size="large" />
         </group>
       </groups>
@@ -39,6 +39,15 @@
                 loadOnClick="false" smallImage="pack://application:,,,/CqaFabricPro;component/Images/icon2_16.png" largeImage="pack://application:,,,/CqaFabricPro;component/Images/icon2_32.png">
           <tooltip heading="Identify Fabric">Activate or deactivate Fabric identification.<disabledText>Log in, select a vintage and layer, and open a map first.</disabledText></tooltip>
         </button>
+        <button id="CqaFabricPro_IdentifyTopmostLayerButton" caption="Topmost Layer" className="IdentifyTopmostLayerButton" loadOnClick="true">
+          <tooltip heading="Topmost Layer">Return results from the first visible Fabric layer containing a hit.<disabledText /></tooltip>
+        </button>
+        <button id="CqaFabricPro_IdentifyVisibleLayersButton" caption="Visible Layers" className="IdentifyVisibleLayersButton" loadOnClick="true">
+          <tooltip heading="Visible Layers">Return results from every visible Fabric layer at the clicked location.<disabledText /></tooltip>
+        </button>
+        <button id="CqaFabricPro_IdentifySelectedLayersButton" caption="Selected in Contents" className="IdentifySelectedLayersButton" loadOnClick="true">
+          <tooltip heading="Selected in Contents">Return results only from Fabric layers selected in the Contents pane.<disabledText /></tooltip>
+        </button>
         <button id="CqaFabricPro_LoginLogoutButton" caption="Log In" className="LoginLogoutButton" keytip="L"
                 loadOnClick="false" smallImage="pack://application:,,,/CqaFabricPro;component/Images/icon3_16.png" largeImage="pack://application:,,,/CqaFabricPro;component/Images/icon3_32.png">
           <tooltip heading="CQA Fabric Login">Log in with an API key or securely log out.<disabledText /></tooltip>
@@ -48,6 +57,14 @@
           <tooltip heading="Identify Fabric">Click a Fabric feature to retrieve its attributes.<disabledText /></tooltip>
         </tool>
       </controls>
+      <splitButtons>
+        <splitButton id="CqaFabricPro_IdentifySplitButton">
+          <button refID="CqaFabricPro_IdentifyButton" />
+          <button refID="CqaFabricPro_IdentifyTopmostLayerButton" />
+          <button refID="CqaFabricPro_IdentifyVisibleLayersButton" />
+          <button refID="CqaFabricPro_IdentifySelectedLayersButton" />
+        </splitButton>
+      </splitButtons>
       <dockPanes>
           <dockPane id="CqaFabricPro_FabricPane" caption="CQA Fabric" className="FabricPaneViewModel"
                   dock="group" dockWith="esri_core_contentsDockPane">
