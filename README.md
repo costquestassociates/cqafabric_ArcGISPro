@@ -1,6 +1,6 @@
 [![GitHub release](https://img.shields.io/badge/release-v1.0.0-blue)](https://github.com/hchen-cqa/cqafabric_ArcGISPro/releases/latest)
 
-# CQA Fabric for ArcGIS Pro
+# CQA Fabric Add-in for ArcGIS Pro
 
 CQA Fabric for ArcGIS Pro provides access to CostQuest Fabric APIs directly in
 ArcGIS Pro. The add-in is based on the workflows available in the
